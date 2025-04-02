@@ -1,66 +1,103 @@
 package com.emobile.springtodo.repository;
 
 import com.emobile.springtodo.entity.ToDoItem;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 /**
- * Тесты для репозитория ToDo.
- * Включает тестирование операций сохранения, обновления и удаления задач.
- *
- * @author PavelOkhrimchuk
+ * Тесты для репозитория To Do, работающего с Hibernate.
  */
 @ExtendWith(MockitoExtension.class)
 class ToDoRepositoryTest {
 
     @Mock
-    private JdbcTemplate jdbcTemplate;
+    private SessionFactory sessionFactory;
+
+    @Mock
+    private Session session;
+
+    @Mock
+    private Transaction transaction;
 
     @InjectMocks
     private ToDoRepositoryImpl toDoRepository;
 
-
     @Test
     void testSave() {
         ToDoItem toDoItem = new ToDoItem(null, "Title", "Description", false, LocalDateTime.now());
-        String sql = "INSERT INTO todo_items (title, description, completed, created_at) VALUES (?,?,?,?) RETURNING id";
-        Long generatedId = 1L;
 
-        when(jdbcTemplate.queryForObject(eq(sql), eq(Long.class), any(), any(), any(), any()))
-                .thenReturn(generatedId);
+
+        when(sessionFactory.openSession()).thenReturn(session);
+        when(session.beginTransaction()).thenReturn(transaction);
+        when(session.getTransaction()).thenReturn(transaction);
 
         toDoRepository.save(toDoItem);
 
-        assertEquals(generatedId, toDoItem.getId());
-        verify(jdbcTemplate).queryForObject(eq(sql), eq(Long.class), any(), any(), any(), any());
+        verify(session).persist(toDoItem);
+        verify(transaction).commit();
+        verify(session).close();
     }
+
 
     @Test
     void testUpdate() {
         ToDoItem toDoItem = new ToDoItem(1L, "Updated Title", "Updated Description", true, LocalDateTime.now());
-        String sql = "UPDATE todo_items SET title = ?, description = ?, completed = ? WHERE id = ?";
+
+        when(sessionFactory.openSession()).thenReturn(session);
+        when(session.beginTransaction()).thenReturn(transaction);
+        when(session.getTransaction()).thenReturn(transaction);
 
         toDoRepository.update(toDoItem);
 
-        verify(jdbcTemplate).update(eq(sql), any(), any(), any(), eq(toDoItem.getId()));
+        verify(session).merge(toDoItem);
+        verify(transaction).commit();
+        verify(session).close();
+    }
+
+
+    @Test
+    void testFindById() {
+        Long id = 1L;
+        ToDoItem toDoItem = new ToDoItem(id, "Title", "Description", false, LocalDateTime.now());
+
+        when(sessionFactory.openSession()).thenReturn(session);
+        when(session.get(ToDoItem.class, id)).thenReturn(toDoItem);
+
+        Optional<ToDoItem> result = toDoRepository.findById(id);
+
+        assertTrue(result.isPresent());
+        assertEquals(toDoItem, result.get());
+        verify(session).close();
     }
 
     @Test
     void testDeleteById() {
         Long id = 1L;
-        String sql = "DELETE FROM todo_items WHERE id = ?";
+        ToDoItem toDoItem = new ToDoItem(id, "Title", "Description", false, LocalDateTime.now());
+
+        when(sessionFactory.openSession()).thenReturn(session);
+        when(session.beginTransaction()).thenReturn(transaction);
+        when(session.get(ToDoItem.class, id)).thenReturn(toDoItem);
+        when(session.getTransaction()).thenReturn(transaction);
 
         toDoRepository.deleteById(id);
 
-        verify(jdbcTemplate).update(eq(sql), eq(id));
+        verify(session).remove(toDoItem);
+        verify(transaction).commit();
+        verify(session).close();
     }
+
 }

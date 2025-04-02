@@ -2,8 +2,8 @@ package com.emobile.springtodo.repository;
 
 import com.emobile.springtodo.entity.ToDoItem;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,18 +19,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ToDoRepositoryImpl implements ToDoRepository {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final SessionFactory sessionFactory;
 
-    /**
-     * Маппер для преобразования строки результата SQL запроса в объект ToDoItem.
-     */
-    private final RowMapper<ToDoItem> rowMapper = (rs, rowNum) -> new ToDoItem(
-            rs.getLong("id"),
-            rs.getString("title"),
-            rs.getString("description"),
-            rs.getBoolean("completed"),
-            rs.getTimestamp("created_at").toLocalDateTime()
-    );
+
 
     /**
      * Получить все задачи с поддержкой пагинации.
@@ -41,8 +32,12 @@ public class ToDoRepositoryImpl implements ToDoRepository {
      */
     @Override
     public List<ToDoItem> findAll(int limit, int offset) {
-        String sql = "SELECT * FROM todo_items ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        return jdbcTemplate.query(sql, rowMapper, limit, offset);
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("FROM ToDoItem ORDER BY createdAt DESC", ToDoItem.class)
+                    .setFirstResult(offset)
+                    .setMaxResults(limit)
+                    .list();
+        }
     }
 
     /**
@@ -52,9 +47,9 @@ public class ToDoRepositoryImpl implements ToDoRepository {
      */
     @Override
     public Optional<ToDoItem> findById(Long id) {
-        String sql = "SELECT * FROM todo_items WHERE id = ?";
-        List<ToDoItem> result = jdbcTemplate.query(sql, rowMapper, id);
-        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+        try (Session session = sessionFactory.openSession()) {
+            return Optional.ofNullable(session.get(ToDoItem.class, id));
+        }
     }
 
     /**
@@ -63,11 +58,18 @@ public class ToDoRepositoryImpl implements ToDoRepository {
      */
     @Override
     public void save(ToDoItem toDoItem) {
-        String sql = "INSERT INTO todo_items (title, description, completed, created_at) VALUES (?,?,?,?) RETURNING id";
-        Long generatedId = jdbcTemplate.queryForObject(sql, Long.class,
-                toDoItem.getTitle(), toDoItem.getDescription(), toDoItem.isCompleted(), toDoItem.getCreatedAt());
-        toDoItem.setId(generatedId);
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+
+            if (toDoItem.getId() == null) {
+                session.persist(toDoItem);
+            } else {
+                session.merge(toDoItem);
+            }
+            session.getTransaction().commit();
+        }
     }
+
 
     /**
      * Обновить существующую задачу.
@@ -75,8 +77,11 @@ public class ToDoRepositoryImpl implements ToDoRepository {
      */
     @Override
     public void update(ToDoItem toDoItem) {
-        String sql = "UPDATE todo_items SET title = ?, description = ?, completed = ? WHERE id = ?";
-        jdbcTemplate.update(sql, toDoItem.getTitle(), toDoItem.getDescription(), toDoItem.isCompleted(), toDoItem.getId());
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+            session.merge(toDoItem);
+            session.getTransaction().commit();
+        }
     }
 
     /**
@@ -85,7 +90,13 @@ public class ToDoRepositoryImpl implements ToDoRepository {
      */
     @Override
     public void deleteById(Long id) {
-        String sql = "DELETE FROM todo_items WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+        try (Session session = sessionFactory.openSession()) {
+            session.beginTransaction();
+            ToDoItem item = session.get(ToDoItem.class, id);
+            if (item != null) {
+                session.remove(item);
+            }
+            session.getTransaction().commit();
+        }
     }
 }
