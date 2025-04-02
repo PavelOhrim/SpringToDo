@@ -1,5 +1,6 @@
 package com.emobile.springtodo.entity;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,16 +18,21 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Entity
+@Table(name = "todo_items")
 public class ToDoItem {
 
     /**
      * Уникальный идентификатор задачи.
      */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
      * Название задачи.
      */
+    @Column(nullable = false)
     private String title;
 
     /**
@@ -42,6 +48,7 @@ public class ToDoItem {
     /**
      * Дата и время создания задачи.
      */
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
 }

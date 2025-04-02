@@ -98,7 +98,7 @@ public class ToDoServiceImpl implements ToDoService {
         item.setDescription(dto.getDescription());
         item.setCompleted(dto.isCompleted());
 
-        toDoRepository.update(item);
+        toDoRepository.save(item);
         return toDoItemMapper.toDto(item);
     }
 

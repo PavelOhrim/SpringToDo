@@ -1,17 +1,21 @@
 package com.emobile.springtodo.repository;
 
 import com.emobile.springtodo.entity.ToDoItem;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
+
 
 /**
  * Репозиторий для работы с задачами ToDo.
- * Содержит методы для поиска, сохранения, обновления и удаления задач.
  *
  * @author PavelOkhrimchuk
  */
-public interface ToDoRepository {
+@Repository
+public interface ToDoRepository extends JpaRepository<ToDoItem, Long> {
 
     /**
      * Получить все задачи с поддержкой пагинации.
@@ -20,30 +24,7 @@ public interface ToDoRepository {
      * @param offset Смещение для выборки.
      * @return Список задач.
      */
-    List<ToDoItem> findAll(int limit, int offset);
+    @Query(value = "SELECT * FROM todo_items t ORDER BY t.created_at DESC LIMIT :limit OFFSET :offset", nativeQuery = true)
+    List<ToDoItem> findAll(@Param("limit") int limit, @Param("offset") int offset);
 
-    /**
-     * Найти задачу по ID.
-     * @param id Идентификатор задачи.
-     * @return Опциональная задача.
-     */
-    Optional<ToDoItem> findById(Long id);
-
-    /**
-     * Сохранить новую задачу.
-     * @param toDoItem Задача, которую нужно сохранить.
-     */
-    void save(ToDoItem toDoItem);
-
-    /**
-     * Обновить задачу.
-     * @param toDoItem Задача с обновленными данными.
-     */
-    void update(ToDoItem toDoItem);
-
-    /**
-     * Удалить задачу по ID.
-     * @param id Идентификатор задачи.
-     */
-    void deleteById(Long id);
 }

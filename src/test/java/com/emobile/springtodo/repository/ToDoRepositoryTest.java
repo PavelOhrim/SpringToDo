@@ -3,10 +3,8 @@ package com.emobile.springtodo.repository;
 import com.emobile.springtodo.entity.ToDoItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
 
@@ -14,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 /**
- * Тесты для репозитория ToDo.
+ * Тесты для репозитория ToDo с использованием Spring Data JPA.
  * Включает тестирование операций сохранения, обновления и удаления задач.
  *
  * @author PavelOkhrimchuk
@@ -23,44 +21,41 @@ import static org.mockito.Mockito.*;
 class ToDoRepositoryTest {
 
     @Mock
-    private JdbcTemplate jdbcTemplate;
-
-    @InjectMocks
-    private ToDoRepositoryImpl toDoRepository;
-
+    private ToDoRepository toDoRepository;
 
     @Test
     void testSave() {
         ToDoItem toDoItem = new ToDoItem(null, "Title", "Description", false, LocalDateTime.now());
-        String sql = "INSERT INTO todo_items (title, description, completed, created_at) VALUES (?,?,?,?) RETURNING id";
-        Long generatedId = 1L;
+        ToDoItem savedItem = new ToDoItem(1L, "Title", "Description", false, toDoItem.getCreatedAt());
 
-        when(jdbcTemplate.queryForObject(eq(sql), eq(Long.class), any(), any(), any(), any()))
-                .thenReturn(generatedId);
+        when(toDoRepository.save(toDoItem)).thenReturn(savedItem);
 
-        toDoRepository.save(toDoItem);
+        ToDoItem result = toDoRepository.save(toDoItem);
 
-        assertEquals(generatedId, toDoItem.getId());
-        verify(jdbcTemplate).queryForObject(eq(sql), eq(Long.class), any(), any(), any(), any());
+        assertEquals(1L, result.getId());
+        verify(toDoRepository).save(toDoItem);
     }
 
     @Test
     void testUpdate() {
         ToDoItem toDoItem = new ToDoItem(1L, "Updated Title", "Updated Description", true, LocalDateTime.now());
-        String sql = "UPDATE todo_items SET title = ?, description = ?, completed = ? WHERE id = ?";
+        when(toDoRepository.save(toDoItem)).thenReturn(toDoItem);
 
-        toDoRepository.update(toDoItem);
+        ToDoItem updatedItem = toDoRepository.save(toDoItem);
 
-        verify(jdbcTemplate).update(eq(sql), any(), any(), any(), eq(toDoItem.getId()));
+        assertEquals("Updated Title", updatedItem.getTitle());
+        assertEquals("Updated Description", updatedItem.getDescription());
+        assertEquals(true, updatedItem.isCompleted());
+        verify(toDoRepository).save(toDoItem);
     }
 
     @Test
     void testDeleteById() {
         Long id = 1L;
-        String sql = "DELETE FROM todo_items WHERE id = ?";
+        doNothing().when(toDoRepository).deleteById(id);
 
         toDoRepository.deleteById(id);
 
-        verify(jdbcTemplate).update(eq(sql), eq(id));
+        verify(toDoRepository).deleteById(id);
     }
 }
