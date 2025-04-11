@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Главный класс приложения Spring Boot для ToDo.
+ * Главный класс приложения Spring Boot для ToDo
  * Запускает приложение
  *
  * @author PavelOkhrimchuk
