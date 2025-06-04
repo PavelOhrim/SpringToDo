@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-todo-app
+  template:
+    metadata:
+      labels:
+        app: spring-todo-app
+    spec:
+      containers:
+        - name: spring-todo-app
+          image: ohrimpavel/spring-todo-app:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: todo-config
+            - secretRef:
+                name: todo-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-todo-app
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  selector:
+    app: spring-todo-app
