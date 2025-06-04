@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+data:
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://todo-postgres:5432/todo_db"
+  SPRING_DATASOURCE_USERNAME: "todo_user"
+  SPRING_CACHE_TYPE: "redis"
+  SPRING_DATA_REDIS_HOST: "todo-redis"
+  SPRING_DATA_REDIS_PORT: "6379"
+  SPRING_DATA_REDIS_TIMEOUT: "6000"
+  SPRING_DATA_REDIS_DATABASE: "0"
