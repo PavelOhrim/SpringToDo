@@ -26,7 +26,7 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Docker Build & Push (only on main)') {
             when {
                 branch 'main'
             }
@@ -38,6 +38,15 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline for branch '${env.BRANCH_NAME}' completed successfully."
+        }
+        failure {
+            echo "Pipeline for branch '${env.BRANCH_NAME}' failed."
         }
     }
 }
